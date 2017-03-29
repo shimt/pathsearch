@@ -15,6 +15,7 @@ func initCLI() {
 	cli.CommandLine.String("envname", "PATH", "Target environment variable")
 	cli.CommandLine.String("separator", string(os.PathListSeparator), "Path separator")
 	cli.CommandLine.String("setenv-sh", "", "Set environment style output(sh)")
+	cli.CommandLine.Bool("all", false, "Output all candidates")
 
 	cli.BindSameName("envname")
 	cli.BindSameName("separator")
@@ -23,6 +24,16 @@ func initCLI() {
 
 func init() {
 	initCLI()
+}
+
+func outputPath(path string) {
+	setenvSh := cli.Config.GetString("setenv-sh")
+
+	if setenvSh != "" {
+		fmt.Printf("%s=\"%s\"\n", setenvSh, path)
+	} else {
+		fmt.Print(path)
+	}
 }
 
 func main() {
@@ -35,27 +46,19 @@ func main() {
 	}
 
 	env := os.Getenv(cli.Config.GetString("envname"))
+	all := cli.Config.GetBool("all")
 	filename := cli.CommandLine.Arg(0)
-	found := ""
 
 	for _, directory := range strings.Split(env, cli.Config.GetString("separator")) {
 		path := filepath.Join(directory, filename)
 
 		if stat, err := os.Stat(path); err == nil {
 			if !stat.IsDir() {
-				found = path
-				break
+				outputPath(path)
+				if !all {
+					break
+				}
 			}
-		}
-	}
-
-	if found != "" {
-		setenvSh := cli.Config.GetString("setenv-sh")
-
-		if setenvSh != "" {
-			fmt.Printf("%s=\"%s\"", setenvSh, found)
-		} else {
-			fmt.Print(found)
 		}
 	}
 
